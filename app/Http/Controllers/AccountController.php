@@ -1,0 +1,7 @@
+<?php
+namespace App\Http\Controllers;use App\Models\{Wishlist,Review,Product};use Illuminate\Http\Request;
+class AccountController extends Controller{
+ public function profile(){return view('store.profile');}public function updateProfile(Request $r){$d=$r->validate(['name'=>'required|string|max:120','phone'=>'nullable|string|max:30','address'=>'nullable|string|max:500']);$r->user()->update($d);return back()->with('success','Đã cập nhật hồ sơ.');}
+ public function wishlist(){ $items=auth()->user()->wishlist()->with('product')->latest()->get();return view('store.wishlist',compact('items'));}public function toggleWishlist(Product $product){$row=Wishlist::where('user_id',auth()->id())->where('product_id',$product->id)->first();if($row){$row->delete();$msg='Đã bỏ khỏi yêu thích.';}else{Wishlist::create(['user_id'=>auth()->id(),'product_id'=>$product->id]);$msg='Đã thêm vào yêu thích.';}return back()->with('success',$msg);}
+ public function review(Request $r,Product $product){$d=$r->validate(['rating'=>'required|integer|min:1|max:5','title'=>'nullable|string|max:120','content'=>'nullable|string|max:1500']);$hasBought=auth()->user()->orders()->whereIn('status',['delivered'])->whereHas('items',fn($q)=>$q->where('product_id',$product->id))->exists();if(!$hasBought)return back()->withErrors(['review'=>'Bạn cần mua và nhận sản phẩm trước khi đánh giá.']);Review::updateOrCreate(['user_id'=>auth()->id(),'product_id'=>$product->id,'order_id'=>null],$d+['is_approved'=>false]);return back()->with('success','Đánh giá đã gửi và chờ duyệt.');}
+}

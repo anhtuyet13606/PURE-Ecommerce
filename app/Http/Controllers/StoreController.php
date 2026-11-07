@@ -1,0 +1,8 @@
+<?php
+namespace App\Http\Controllers;
+use App\Models\{Product,Category};use Illuminate\Http\Request;
+class StoreController extends Controller{
+ public function home(){ $featured=Product::with('category')->where('is_active',true)->where('featured',true)->latest()->take(8)->get();$products=Product::with('category')->where('is_active',true)->latest()->take(8)->get();$categories=Category::where('is_active',true)->withCount('products')->get();return view('store.home',compact('featured','products','categories'));}
+ public function products(Request $r){$q=Product::with('category')->where('is_active',true);if($r->filled('q'))$q->where(fn($x)=>$x->where('name','like','%'.$r->q.'%')->orWhere('sku','like','%'.$r->q.'%'));if($r->filled('category'))$q->where('category_id',$r->category);if($r->filled('min'))$q->whereRaw('COALESCE(sale_price,price)>=?',[(float)$r->min]);if($r->filled('max'))$q->whereRaw('COALESCE(sale_price,price)<=?',[(float)$r->max]);if($r->sort==='price_asc')$q->orderByRaw('COALESCE(sale_price,price) asc');elseif($r->sort==='price_desc')$q->orderByRaw('COALESCE(sale_price,price) desc');elseif($r->sort==='popular')$q->orderByDesc('created_at');else $q->latest();$products=$q->paginate(12)->withQueryString();$categories=Category::where('is_active',true)->get();return view('store.products',compact('products','categories'));}
+ public function show(Product $product){abort_unless($product->is_active,404);$product->load('category');$related=Product::where('is_active',true)->where('category_id',$product->category_id)->where('id','!=',$product->id)->take(4)->get();$reviews=$product->reviews()->where('is_approved',true)->with('user')->latest()->paginate(5);return view('store.show',compact('product','related','reviews'));}
+}

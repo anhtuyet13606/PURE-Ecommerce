@@ -1,0 +1,3 @@
+<?php
+namespace App\Models;use Illuminate\Database\Eloquent\Model;
+class Coupon extends Model{protected $fillable=['code','description','type','value','min_order','max_discount','usage_limit','used_count','starts_at','expires_at','is_active'];protected $casts=['starts_at'=>'datetime','expires_at'=>'datetime','is_active'=>'boolean'];public function discountFor(float $subtotal):float{if(!$this->is_active||$subtotal<$this->min_order||($this->starts_at&&now()->lt($this->starts_at))||($this->expires_at&&now()->gt($this->expires_at))||($this->usage_limit!==null&&$this->used_count >= $this->usage_limit))return 0;$d=$this->type==='percent'?$subtotal*$this->value/100:$this->value;if($this->max_discount)$d=min($d,$this->max_discount);return min($subtotal,$d);}}
